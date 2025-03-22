@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EV Finder Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --primary-bg: #FEF6E9;
+            --text-dark: #1A1A1A;
+            --sidebar-width: 300px;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            display: flex;
+            min-height: calc(100vh - 56px);
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: white;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 1.5rem;
+        }
+
+        #map {
+            height: calc(100vh - 130px);
+            border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+
+        .station-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            border: 1px solid #eee;
+        }
+
+        .station-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .status-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .station-list {
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .station-list::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .station-list::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 5px;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-box input {
+            padding-left: 2.5rem;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+        }
+
+        .navbar {
+            background-color: white !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            color: var(--text-dark) !important;
+            font-weight: 500;
+        }
+
+        .leaflet-popup-content {
+            min-width: 250px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-lightning-charge-fill"></i> EV Finder
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="bi bi-person-circle"></i> Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="sidebar">
+            <div class="search-box">
+                <i class="bi bi-search"></i>
+                <input type="text" class="form-control" placeholder="Search stations...">
+            </div>
+            <h5 class="mb-3">Charging Stations</h5>
+            <div id="station-list" class="station-list">
+                <!-- Stations will be listed here -->
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Station Details Modal -->
+    <div class="modal fade" id="stationModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">Station Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="station-details">
+                    <!-- Station details will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let map;
+        let markers = [];
+
+        function initMap() {
+            try {
+                map = L.map('map').setView([10.8505, 76.2711], 8);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+                loadStations();
+            } catch (error) {
+                console.error('Error initializing map:', error);
+                document.getElementById('map').innerHTML = 
+                    '<div class="alert alert-warning">Map loading temporarily disabled. Please try again later.</div>';
+            }
+        }
+
+        function addMarker(station) {
+            const position = [
+                parseFloat(station.latitude),
+                parseFloat(station.longitude)
+            ];
+
+            const marker = L.marker(position);
+            
+            const popupContent = `
+                <div class="p-2">
+                    <h6>${station.name}</h6>
+                    <p class="mb-1">${station.address}, ${station.district}</p>
+                    <p class="mb-1">
+                        <strong>Status:</strong> 
+                        <span class="badge bg-${station.status === 'Available' ? 'success' : 'danger'}">
+                            ${station.status}
+                        </span>
+                    </p>
+                    <p class="mb-1"><strong>Connector:</strong> ${station.connector_type}</p>
+                    <p class="mb-1"><strong>Power:</strong> ${station.power_rating}kW</p>
+                    <p class="mb-0"><strong>Price:</strong> ₹${station.price_per_hour}/hour</p>
+                </div>
+            `;
+
+            marker.bindPopup(popupContent);
+            marker.addTo(map);
+            markers.push(marker);
+        }
+
+        function showOnMap(lat, lng) {
+            map.setView([parseFloat(lat), parseFloat(lng)], 15);
+        }
+
+        function loadStations() {
+            const apiUrl = 'http://127.0.0.1:5000/api/stations';
+            
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 500) {
+                            throw new Error('Server error: Please check if the Flask server is running');
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Clear existing markers
+                    markers.forEach(marker => marker.remove());
+                    markers = [];
+                    
+                    // Check if data exists and has the correct format
+                    if (data && Array.isArray(data)) {
+                        updateStationList(data);
+                        data.forEach(addMarker);
+                    } else if (data && Array.isArray(data.stations)) {
+                        updateStationList(data.stations);
+                        data.stations.forEach(addMarker);
+                    } else {
+                        throw new Error('Invalid data format received from server');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading stations:', error);
+                    document.getElementById('station-list').innerHTML = 
+                        `<div class="list-group-item text-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            ${error.message || 'Error loading stations. Please try again later.'}
+                        </div>`;
+                });
+        }
+
+        function updateStationList(stations) {
+            if (!Array.isArray(stations)) {
+                console.error('Invalid stations data:', stations);
+                return;
+            }
+
+            const stationList = document.getElementById('station-list');
+            stationList.innerHTML = '';
+
+            if (stations.length === 0) {
+                stationList.innerHTML = '<div class="list-group-item">No charging stations available</div>';
+                return;
+            }
+
+            stations.forEach(station => {
+                const item = document.createElement('div');
+                item.className = 'list-group-item station-card';
+                item.innerHTML = `
+                    <h6 class="mb-1">${station.name}</h6>
+                    <p class="mb-1 small">${station.address}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge bg-${station.status === 'Available' ? 'success' : 'danger'}">
+                            ${station.status}
+                        </span>
+                        <button class="btn btn-sm btn-primary" onclick="showOnMap(${station.latitude}, ${station.longitude})">
+                            Show on Map
+                        </button>
+                    </div>
+                `;
+                stationList.appendChild(item);
+            });
+        }
+
+        // Initialize map when page loads
+        window.addEventListener('load', initMap);
+    </script>
+</body>
+</html>

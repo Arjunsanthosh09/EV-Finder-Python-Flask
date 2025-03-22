@@ -1,0 +1,51 @@
+:root {
+    --primary-color: #034C53;
+    --secondary-color: #04D939;
+}
+
+.admin-sidebar {
+    height: 100vh;
+    background: var(--primary-color);
+    color: white;
+    position: fixed;
+    padding: 1.5rem;
+}
+
+.admin-content {
+    margin-left: 16.66%;
+    padding: 2rem;
+}
+
+.nav-link {
+    color: rgba(255,255,255,0.8);
+    padding: 1rem;
+    margin: 0.5rem 0;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover, .nav-link.active {
+    color: white;
+    background: rgba(255,255,255,0.15);
+}
+
+.table-container {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--primary-color);
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 500;
+}

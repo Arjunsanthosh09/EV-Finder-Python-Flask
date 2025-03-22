@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EV Finder - Electric Vehicle Charging Solutions</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <!-- Add this font link after your existing CSS links -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #ff0066;
+            --text-light: #ffffff;
+            --text-dark: #1A1A1A;
+        }
+
+        body {
+            background-color: var(--text-dark);
+            color: var(--text-light);
+            font-family: 'Helvetica Neue', sans-serif;
+        }
+
+        .navbar {
+            background-color: transparent !important;
+            padding: 1.5rem 2rem;
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .navbar-brand {
+            color: var(--primary-color) !important;
+            font-size: 1.5rem;
+            text-transform: lowercase;
+        }
+
+        .nav-link {
+            color: var(--text-light) !important;
+            margin: 0 1rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-link:hover {
+            color: var(--primary-color) !important;
+        }
+
+        .hero-section {
+            min-height: 100vh;
+            background: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)),
+                        url('https://images.unsplash.com/photo-1593941707882-a5bba14938c7?q=80&w=1932&auto=format&fit=crop') center/cover;
+            display: flex;
+            align-items: center;
+            text-align: left;
+            padding: 7rem 0;
+        }
+
+        .hero-title {
+            font-size: 5.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            line-height: 1.1;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        /* Update About section typography */
+        .about-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .about-section h2 {
+            font-size: 3.8rem;
+            font-weight: 600;
+            line-height: 1.2;
+            margin-bottom: 2rem;
+        }
+
+        .about-section p {
+            font-size: 1.3rem;
+            line-height: 1.8;
+            margin-bottom: 3rem;
+        }
+
+        .icon-box h5 {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="#">evfinder</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">HOME</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#about">ABOUT</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#services">SERVICES</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#gallery">GALLERY</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#contact">CONTACT</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}">LOGIN</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8">
+                    <h1 class="hero-title">Find And Book EV Charging Locations</h1>
+                    <p class="hero-subtitle">Discover Convenient EV Charging Spaces Near You</p>
+                    <a href="{{ url_for('signup') }}" class="btn btn-primary">Get Started</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Keep existing head section and styles -->
+    <style>
+        /* Add these new styles */
+        .about-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+    
+        .about-grid img {
+            width: 100%;
+            height: 180px;  /* Reduced from original height */
+            border-radius: 8px;
+            object-fit: cover;
+        }
+    
+        .features-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3rem;
+            padding: 2rem;
+            margin-left: 4rem;  /* Added margin to move icons right */
+        }
+    
+        .feature-item {
+            width: 100%;
+            max-width: 200px;
+            text-align: center;
+        }
+    
+        .feature-icon {
+            width: 50px;  /* Slightly reduced icon size */
+            height: 50px;
+            margin-bottom: 1rem;
+        }
+    
+        .about-section {
+            padding: 9rem 0;
+            margin-bottom: 4rem;
+        }
+    
+        .possibilities-section {
+            padding: 8rem 0;
+            margin-top: 2rem;
+            position: relative;
+        }
+    
+        .possibilities-images {
+            position: relative;
+            height: 600px;
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+        }
+    
+        .possibilities-image-1 {
+            position: absolute;
+            right: 200px;
+            top: 0;
+            width: 350px;
+            height: 500px;
+            border-radius: 20px;
+            object-fit: cover;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+            z-index: 2;
+        }
+    
+        .possibilities-image-2 {
+            position: absolute;
+            right: 50px;
+            top: 100px;
+            width: 350px;
+            height: 500px;
+            border-radius: 20px;
+            object-fit: cover;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+            z-index: 1;
+        }
+    
+        .possibilities-image-1:hover,
+        .possibilities-image-2:hover {
+            transform: translateY(-10px);
+        }
+    
+        .possibilities-section h2 {
+            font-size: 4.5rem;
+            font-weight: 600;
+            margin-bottom: 2.5rem;
+            font-family: 'Poppins', sans-serif;
+        }
+    
+        .possibilities-section p {
+            font-size: 1.4rem;
+            line-height: 1.8;
+            margin-bottom: 3rem;
+        }
+    
+        .feature-list {
+            font-size: 1.3rem;
+            margin-left: 1rem;
+        }
+    
+        .feature-list li {
+            margin-bottom: 1.5rem;
+        }
+    
+        .testimonials-section {
+            padding: 9rem 0;
+            margin-top: 3rem;
+        }
+    
+        .testimonials-section h2 {
+            font-size: 4.2rem;
+            font-weight: 600;
+            margin-bottom: 2.5rem;
+            font-family: 'Poppins', sans-serif;
+        }
+    
+        .testimonials-section > p {
+            font-size: 1.3rem;
+            margin-bottom: 4rem;
+        }
+    
+        .testimonial-card {
+            padding: 2.5rem;
+            margin-bottom: 4rem;
+        }
+    
+        .testimonial-card p {
+            font-size: 1.2rem;
+            line-height: 1.8;
+        }
+    
+        .feature-list li::before {
+            content: "►";
+            color: var(--primary-color);
+            margin-right: 10px;
+        }
+    
+        .testimonials-section {
+            padding: 9rem 0;
+            text-align: center;
+        }
+    
+        .testimonials-section h2 {
+            font-size: 6rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            font-family: 'Poppins', sans-serif;
+        }
+    
+        .testimonials-section > p {
+            font-size: 1.5rem;
+            margin-bottom: 5rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    
+        .testimonial-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 3rem;
+            margin-bottom: 4rem;
+            text-align: center;
+        }
+    
+        .testimonial-card .stars {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+        }
+    
+        .testimonial-card p {
+            font-size: 1.4rem;
+            line-height: 1.6;
+            margin-bottom: 0;
+        }
+    
+        .testimonial-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0 auto;
+            position: relative;
+            top: 50px;
+            object-fit: cover;
+        }
+    
+        .testimonial-info {
+            text-align: center;
+            margin-top: 60px;
+        }
+    
+        .testimonial-info h5 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+    
+        .testimonial-role {
+            color: var(--primary-color);
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 500;
+        }
+    
+        footer {
+            background: #000;
+            padding: 4rem 0 2rem;
+        }
+    
+        .footer-title {
+            font-size: 1.6rem;
+            margin-bottom: 1.5rem;
+        }
+    
+        .footer-list {
+            list-style: none;
+            padding: 0;
+        }
+    
+        .footer-list li {
+            margin-bottom: 0.8rem;
+        }
+    
+        .social-links {
+            display: flex;
+            gap: 1rem;
+        }
+    
+        .social-links a {
+            color: var(--text-light);
+            font-size: 1.2rem;
+        }
+    </style>
+
+    <!-- Keep existing navbar and hero section -->
+
+    <section id="about" class="about-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h3 class="about-title">ABOUT US</h3>
+                    <h2 class="mb-4">Discover Convenient EV Charging Spaces Near You</h2>
+                    <p class="mb-4">Our platform makes it easy for EV owners to find and book nearby charging stations, ensuring a seamless and efficient charging experience.</p>
+                    <div class="about-grid">
+                        <img src="/static/images/icons/img2.png" alt="Laptop">
+                        <img src="/static/images/icons/im1.png" alt="Charging">
+                        <img src="/static/images/icons/img3.png" alt="Phone">
+                        <img src="/static/images/icons/img4.png" alt="Station">
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="features-container">
+                        <div class="feature-item">
+                            <img src="/static/images/icons/icons8-security-configuration-94.png" alt="Security" class="feature-icon">
+                            <h5>Secure Booking</h5>
+                        </div>
+                        <div class="feature-item">
+                            <img src="/static/images/icons/icons8-support-94.png" alt="Support" class="feature-icon">
+                            <h5>24/7 Support</h5>
+                        </div>
+                        <div class="feature-item">
+                            <img src="/static/images/icons/icons8-network-94.png" alt="Network" class="feature-icon">
+                            <h5>Wide Network</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="possibilities-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h2 class="mb-4">Endless Possibilities</h2>
+                    <p class="mb-4">Our platform makes it easy for EV owners to find and book nearby charging stations, ensuring a seamless and efficient charging experience.</p>
+                    <ul class="feature-list">
+                        <li>Charging Station Locator</li>
+                        <li>Booking Options</li>
+                        <li>User-Friendly Interface</li>
+                    </ul>
+                </div>
+                <div class="col-lg-6">
+                    <div class="possibilities-images">
+                        <img src="/static/images/electric-car-charging_153608-1707.avif" alt="EV Station" class="possibilities-image-1">
+                        <img src="/static/images/close-up-electric-car-france (2).jpg" alt="EV App" class="possibilities-image-2">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="testimonials-section">
+        <div class="container">
+            <h2 class="mb-5">Client Testimonials</h2>
+            <p class="mb-5">Read what our clients have to say about their experiences with our EV charging services.</p>
+            
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="testimonial-card">
+                        <div class="stars mb-3">★★★★★</div>
+                        <p>"I appreciate the dedication of EvFinder in advancing sustainable transportation through accessible charging solutions."</p>
+                    </div>
+                    <img src="/static/images/2023_08_28_16_49_IMG_0699.JPG" alt="John Doe" class="testimonial-avatar">
+                    <div class="testimonial-info">
+                        <h5>Drisya Unnikrishnan</h5>
+                        <div class="testimonial-role">Tech Professional</div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="testimonial-card">
+                        <div class="stars mb-3">★★★★★</div>
+                        <p>"I appreciate the efforts of evfinder in promoting sustainable transportation through accessible charging solutions."</p>
+                    </div>
+                    <img src="/static/images/2024_12_20_15_17_IMG_6486.JPG" alt="Sarah Smith" class="testimonial-avatar">
+                    <div class="testimonial-info">
+                        <h5>Abhishek V Gopal</h5>
+                        <div class="testimonial-role">Business Owner</div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="testimonial-card">
+                        <div class="stars mb-3">★★★★★</div>
+                        <p>"The user-friendly interface of evfinder has simplified the process of finding and booking charging stations for my electric vehicle."</p>
+                    </div>
+                    <img src="/static/images/2024_12_20_15_20_IMG_6497.JPG" alt="Mike Johnson" class="testimonial-avatar">
+                    <div class="testimonial-info">
+                        <h5>Arjun A Acharry</h5>
+                        <div class="testimonial-role">EV Enthusiast</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4">
+                    <h4 class="footer-title">Company Overview</h4>
+                    <p>With a commitment to excellence and customer satisfaction, we strive to deliver premium quality and innovative solutions tailored to meet your needs.</p>
+                </div>
+                <div class="col-lg-4">
+                    <h4 class="footer-title">Contact</h4>
+                    <ul class="footer-list">
+                        <li><i class="bi bi-geo-alt"></i> Changanassery,kottayam, Kerala, India, 686105</li>
+                        <li><i class="bi bi-telephone"></i> +91 8590939674</li>
+                        <li><i class="bi bi-envelope"></i> arjunsanthosh440@gmail.com</li>
+                    </ul>
+                </div>
+                <div class="col-lg-4">
+                    <h4 class="footer-title">Services</h4>
+                    <ul class="footer-list">
+                        <li>Booking Options</li>
+                        <li>User-Friendly Interface</li>
+                        <li>Real-time Availability</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="mt-5 mb-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <p>Copyright 2025 All Rights Reserved. Made by Arjun Santhosh</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="social-links">
+                        <a href="#"><i class="bi bi-facebook"></i></a>
+                        <a href="#"><i class="bi bi-twitter"></i></a>
+                        <a href="#"><i class="bi bi-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
