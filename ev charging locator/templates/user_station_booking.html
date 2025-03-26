@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Charging Station</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background-color: #1a1a1a !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .navbar-brand {
+            color: #ffffff !important;
+            font-weight: 500;
+        }
+
+        .nav-link {
+            color: #ffffff !important;
+        }
+
+        .btn-custom {
+            background-color: #444;
+            color: #ffffff;
+            border: none;
+        }
+
+        .booking-container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 2rem;
+            background: #1a1a1a;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .form-control {
+            background: #242424;
+            border: 1px solid #333;
+            color: #ffffff;
+        }
+
+        .form-control:focus {
+            background: #2a2a2a;
+            color: #ffffff;
+            border-color: #0d6efd;
+        }
+
+        .form-label {
+            color: #888;
+        }
+
+        .price-summary {
+            background: #242424;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-top: 2rem;
+        }
+
+        .price-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .total-price {
+            border-top: 1px solid #333;
+            padding-top: 1rem;
+            margin-top: 1rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-lightning-charge-fill text-primary"></i> EVCharg
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <button class="btn btn-outline-primary">
+                                <i class="bi bi-house-fill"></i> Dashboard
+                            </button>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="bi bi-person-circle"></i> {{ session.user_name }}</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">
+                            <button class="btn btn-custom">
+                                <i class="bi bi-box-arrow-right"></i> Logout
+                            </button>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <style>
+        .navbar {
+            padding: 1rem 2rem;
+            backdrop-filter: blur(10px);
+            background-color: rgba(26, 26, 26, 0.95) !important;
+        }
+
+        .btn-outline-primary {
+            border-color: #0d6efd;
+            color: #0d6efd;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: #0d6efd;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .booking-container {
+            animation: fadeIn 0.5s ease;
+            border: 1px solid #333;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-control {
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(13, 110, 253, 0.2);
+        }
+
+        .price-summary {
+            border: 1px solid #333;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #0d6efd, #0099ff);
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(13, 110, 253, 0.3);
+        }
+    </style>
+
+    <head>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+        <style>
+            body {
+                background: linear-gradient(rgba(18, 18, 18, 0.97), rgba(18, 18, 18, 0.97)),
+                            url('https://images.unsplash.com/photo-1558425521-42ad53860984?auto=format&fit=crop&w=1920&q=80');
+                background-size: cover;
+                background-attachment: fixed;
+                background-position: center;
+            }
+    
+            .booking-container {
+                background: rgba(26, 26, 26, 0.95);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+    
+            .booking-header {
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+    
+            .booking-header i {
+                font-size: 3rem;
+                color: #0d6efd;
+                margin-bottom: 1rem;
+            }
+    
+            .booking-steps {
+                display: flex;
+                justify-content: space-around;
+                margin-bottom: 2rem;
+                padding: 1rem;
+                background: rgba(13, 110, 253, 0.1);
+                border-radius: 10px;
+            }
+    
+            .step {
+                text-align: center;
+                color: #888;
+            }
+    
+            .step.active {
+                color: #0d6efd;
+            }
+    
+            .step i {
+                font-size: 1.5rem;
+                margin-bottom: 0.5rem;
+            }
+    
+            .eco-impact {
+                text-align: center;
+                padding: 1rem;
+                margin-top: 2rem;
+                background: rgba(40, 167, 69, 0.1);
+                border-radius: 10px;
+                border-left: 4px solid #28a745;
+            }
+    
+            .eco-impact i {
+                color: #28a745;
+                font-size: 1.5rem;
+                margin-bottom: 0.5rem;
+            }
+        </style>
+    </head>
+
+    <div class="container">
+        <div class="booking-container animate__animated animate__fadeIn">
+            <div class="booking-header">
+                <i class="bi bi-ev-station"></i>
+                <h3>Book Charging Station</h3>
+                <p class="text-white">Schedule your charging session in few simple steps</p>
+            </div>
+
+            <div class="booking-steps animate__animated animate__fadeInUp">
+                <div class="step active">
+                    <i class="bi bi-1-circle-fill"></i>
+                    <div>Select Time</div>
+                </div>
+                <div class="step">
+                    <i class="bi bi-2-circle"></i>
+                    <div>Review</div>
+                </div>
+                <div class="step">
+                    <i class="bi bi-3-circle"></i>
+                    <div>Payment</div>
+                </div>
+            </div>
+
+            <form id="bookingForm" class="animate__animated animate__fadeIn">
+                <div class="mb-3">
+                    <label class="form-label">Station</label>
+                    <input type="text" class="form-control" id="stationName" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Date</label>
+                    <input type="date" class="form-control" required min="" id="bookingDate">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Time</label>
+                    <input type="time" class="form-control" required id="bookingTime">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Duration (hours)</label>
+                    <input type="number" class="form-control" min="1" max="24" value="1" required id="duration" 
+                           oninput="calculatePrice()">
+                </div>
+
+                <div class="price-summary">
+                    <div class="price-item">
+                        <span>Charging Rate</span>
+                        <span>₹<span id="ratePerHour">0</span>/hour</span>
+                    </div>
+                    <div class="price-item">
+                        <span>Duration</span>
+                        <span><span id="durationText">1</span> hour(s)</span>
+                    </div>
+                    <div class="price-item total-price">
+                        <span>Total Amount</span>
+                        <span>₹<span id="totalAmount">0</span></span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 mt-4">
+                    <i class="bi bi-credit-card me-2"></i>Pay Now
+                </button>
+            </form>
+
+            <div class="eco-impact animate__animated animate__fadeIn">
+                <i class="bi bi-leaf-fill"></i>
+                <p class="mb-0">By choosing electric charging, you're helping reduce CO2 emissions</p>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('bookingDate').min = new Date().toISOString().split('T')[0];
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const stationInput = document.getElementById('stationName');
+        stationInput.value = decodeURIComponent(urlParams.get('station') || '');
+        const pricePerHour = parseFloat(urlParams.get('price')) || 0;
+
+        function calculatePrice() {
+            const duration = parseInt(document.getElementById('duration').value) || 1;
+            const total = pricePerHour * duration;
+
+            document.getElementById('ratePerHour').textContent = pricePerHour.toFixed(2);
+            document.getElementById('durationText').textContent = duration;
+            
+            // Update price summary to show charging rate
+            const priceSummary = document.querySelector('.price-summary');
+            priceSummary.innerHTML = `
+                <div class="price-item">
+                    <span>Charging Rate</span>
+                    <span>₹<span id="ratePerHour">${pricePerHour.toFixed(2)}</span>/hour</span>
+                </div>
+                <div class="price-item">
+                    <span>Duration</span>
+                    <span><span id="durationText">${duration}</span> hour(s)</span>
+                </div>
+                <div class="price-item total-price">
+                    <span>Total Amount</span>
+                    <span>₹<span id="totalAmount">${total.toFixed(2)}</span></span>
+                </div>
+            `;
+        }
+
+        calculatePrice();
+
+        document.getElementById('duration').addEventListener('input', calculatePrice);
+
+        document.getElementById('bookingForm').onsubmit = function(e) {
+            e.preventDefault();
+            
+            // Get form values
+            const station = stationInput.value;
+            const date = document.getElementById('bookingDate').value;
+            const time = document.getElementById('bookingTime').value;
+            const duration = document.getElementById('duration').value;
+            const total = document.getElementById('totalAmount').textContent;
+
+            if (!station) {
+                alert('Station name is required');
+                return;
+            }
+
+            document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+            document.querySelectorAll('.step')[1].classList.add('active');
+
+            const formContent = document.getElementById('bookingForm').innerHTML;
+            document.getElementById('bookingForm').innerHTML = `
+                <div class="review-section animate__animated animate__fadeIn">
+                    <h4 class="mb-4">Review Booking Details</h4>
+                    
+                    <div class="review-item mb-3">
+                        <label>Selected Station</label>
+                        <p class="mb-0">${station}</p>
+                    </div>
+
+                    <div class="review-item mb-3">
+                        <label>Date & Time</label>
+                        <p class="mb-0">${date} at ${time}</p>
+                    </div>
+
+                    <div class="review-item mb-3">
+                        <label>Duration</label>
+                        <p class="mb-0">${duration} hour(s)</p>
+                    </div>
+
+                    <div class="review-item mb-4">
+                        <label>Total Amount</label>
+                        <p class="mb-0 text-primary fw-bold">₹${total}</p>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary w-50" onclick="goBackToForm('${encodeURIComponent(formContent)}')">
+                            <i class="bi bi-arrow-left me-2"></i>Edit
+                        </button>
+                        <button type="button" class="btn btn-primary w-50" onclick="proceedToPayment()">
+                            <i class="bi bi-credit-card me-2"></i>Proceed to Pay
+                        </button>
+                    </div>
+                </div>
+            `;
+        };
+
+        function goBackToForm(formContent) {
+            document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+            document.querySelectorAll('.step')[0].classList.add('active');
+            
+            document.getElementById('bookingForm').innerHTML = decodeURIComponent(formContent);
+       
+            document.getElementById('duration').addEventListener('input', calculatePrice);
+            calculatePrice();
+        }
+
+        function proceedToPayment() {
+            try {
+                const reviewItems = document.querySelectorAll('.review-item');
+                const station = reviewItems[0].querySelector('p').textContent;
+                const dateTime = reviewItems[1].querySelector('p').textContent;
+                const duration = reviewItems[2].querySelector('p').textContent;
+                const total = reviewItems[3].querySelector('p').textContent.replace('₹', '');
+                
+                const options = {
+                    key: 'rzp_test_pMobRZO0cAbjdt',
+                    amount: parseFloat(total) * 100,
+                    currency: 'INR',
+                    name: 'EVCharg',
+                    description: 'Charging Station Booking',
+                    // Update only the handler section in proceedToPayment function
+                    handler: function(response) {
+                    // Format data to match database types
+                    const bookingData = {
+                    user_id: Number({{ session.user_id }}),
+                    station_id: Number(urlParams.get('id')), // Changed from station_id to id
+                    booking_date: dateTime.split(' at ')[0].trim(),
+                    start_time: dateTime.split(' at ')[1].trim(),
+                    duration: parseInt(duration.replace(' hour(s)', '')),
+                    total_amount: parseFloat(total),
+                    status: 'confirmed',
+                    razorpayid: response.razorpay_payment_id
+                    };
+                    
+                    console.log('Sending booking data:', bookingData);
+                    
+                    fetch('/save_booking', {
+                    method: 'POST',
+                    headers: {
+                    'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(bookingData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                    console.log('Server response:', data);
+                    if(data.success) {
+                    alert('Payment Successful! Payment ID: ' + response.razorpay_payment_id);
+                    window.location.href = '/dashboard';
+                    } else {
+                    alert('Error saving booking: ' + data.message);
+                    }
+                    })
+                    .catch(error => {
+                    console.error('Fetch error:', error);
+                    alert('Error saving booking. Please try again.');
+                    });
+                    },
+                    prefill: {
+                        name: '{{ session.user_name }}',
+                        email: '{{ session.user_email }}'
+                    },
+                    theme: {
+                        color: '#0d6efd'
+                    }
+                };
+                
+                const rzp = new Razorpay(options);
+                rzp.open();
+            } catch (error) {
+                console.error('Payment initialization error:', error);
+                alert('Error initializing payment. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>
+
+<style>
+        /* Add these styles */
+        .review-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .review-item label {
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+            color: #888;
+        }
+
+        .review-item p {
+            font-size: 1.1rem;
+            color: #ffffff;
+        }
+
+        .review-section h4 {
+            color: #ffffff;
+        }
+    </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Check for payment data in localStorage
+    const paymentData = JSON.parse(localStorage.getItem('paymentData'));
+    if (paymentData && paymentData.success) {
+        // Show success message
+        alert('Payment Successful! Payment ID: ' + paymentData.paymentId);
+        // Clear the payment data
+        localStorage.removeItem('paymentData');
+        // Generate invoice
+        generateInvoice(paymentData.paymentId);
+    }
+});
+</script>

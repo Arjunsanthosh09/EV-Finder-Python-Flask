@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Details - EVFind</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #121212;
+            color: #f5f5f5;
+            padding-top: 80px;
+        }
+
+        .booking-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+
+        .booking-card {
+            background: #1a1a1a;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .booking-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        .booking-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .station-name {
+            font-size: 1.4rem;
+            color: #fff;
+            margin: 0;
+        }
+
+        .booking-status {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .status-confirmed {
+            background: rgba(25, 135, 84, 0.2);
+            color: #28a745;
+        }
+
+        .status-pending {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .status-finished {
+            background: rgba(25, 135, 84, 0.3);
+            color: #198754;
+        }
+
+        .booking-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-item {
+            background: rgba(255,255,255,0.05);
+            padding: 1rem;
+            border-radius: 10px;
+        }
+
+        .detail-label {
+            color: #adb5bd;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-value {
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn-cancel {
+            background: linear-gradient(45deg, #dc3545, #ff4d5a);
+            color: white;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cancel:hover {
+            background: linear-gradient(45deg, #c82333, #dc3545);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            margin: 2rem 0;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: #adb5bd;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    <div class="container booking-container">
+        <h2 class="mb-4"><i class="bi bi-calendar-check me-2"></i>Your Bookings</h2>
+        
+        {% if bookings %}
+            {% for booking in bookings %}
+            <div class="booking-card">
+                <div class="booking-header">
+                    <h3 class="station-name">{{ booking.station_name }}</h3>
+                    <span class="booking-status {% if booking.status == 'confirmed' %}status-confirmed{% elif booking.status == 'Finished' %}status-finished{% else %}status-pending{% endif %}">
+                        <i class="bi {% if booking.status == 'confirmed' %}bi-check-circle{% elif booking.status == 'Finished' %}bi-check-all{% else %}bi-clock{% endif %} me-2"></i>
+                        {{ booking.status|title }}
+                    </span>
+                </div>
+                
+                <div class="booking-details">
+                    <div class="detail-item">
+                        <div class="detail-label">Booking Date</div>
+                        <div class="detail-value">{{ booking.booking_date.strftime('%d %B %Y') }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Start Time</div>
+                        <div class="detail-value">{{ booking.start_time }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Duration</div>
+                        <div class="detail-value">{{ booking.duration }} hour(s)</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Amount</div>
+                        <div class="detail-value">₹{{ "%.2f"|format(booking.total_amount) }}</div>
+                    </div>
+                    <div class="detail-item" style="background: rgba(220, 53, 69, 0.1);">
+                        <div class="detail-label">
+                            <i class="bi bi-clock-history me-2"></i>Expires At
+                        </div>
+                        <div class="detail-value" style="color: #dc3545;">
+                            {% set total_minutes = (booking.start_time.seconds // 60) + (booking.duration * 60) + 15 %}
+                            {% set expire_hours = (total_minutes // 60) % 24 %}
+                            {% set expire_minutes = total_minutes % 60 %}
+                            {{ "%02d:%02d"|format(expire_hours, expire_minutes) }}
+                        </div>
+                    </div>
+                    <div class="detail-item" style="grid-column: 1 / -1; background: rgba(255, 193, 7, 0.1);">
+                        <div class="detail-label">
+                            <i class="bi bi-exclamation-triangle-fill text-warning"></i> Important Notice
+                        </div>
+                        <div class="detail-value" style="font-size: 0.9rem;">
+                            Please arrive on time for your booking. A 15-minute grace period is allowed, after which the slot may be allocated to waiting customers. No refunds for missed appointments.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    {% if booking.status != 'cancelled' and booking.status != 'Finished' %}
+                    <button class="btn btn-cancel" onclick="cancelBooking('{{ booking.id }}')">
+                        <i class="bi bi-x-circle me-2"></i>Cancel Booking
+                    </button>
+                    <button class="btn btn-primary" onclick="printInvoice(...)">
+                        <i class="bi bi-printer me-2"></i>Print Invoice
+                    </button>
+                    {% if booking.status == 'confirmed' %}
+                    <button class="btn btn-success" onclick="finishCharging('{{ booking.id }}')">
+                        <i class="bi bi-check2-circle me-2"></i>Finish Charging
+                    </button>
+                    {% endif %}
+                    {% endif %}
+                </div>
+
+                <script>
+                function printInvoice(bookingId, stationName, bookingDate, startTime, duration, amount, userName, address, latitude, longitude) {
+                    const invoiceWindow = window.open('', '_blank');
+                    const invoiceHTML = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>EVFind - Invoice</title>
+                            <style>
+                                body {
+                                    font-family: Arial, sans-serif;
+                                    margin: 40px;
+                                    color: #333;
+                                }
+                                .invoice-header {
+                                    text-align: center;
+                                    margin-bottom: 30px;
+                                    border-bottom: 2px solid #0d6efd;
+                                    padding-bottom: 20px;
+                                }
+                                .invoice-header h1 {
+                                    color: #0d6efd;
+                                    margin: 0;
+                                }
+                                .invoice-details {
+                                    margin: 20px 0;
+                                }
+                                .detail-row {
+                                    display: flex;
+                                    justify-content: space-between;
+                                    margin: 10px 0;
+                                    border-bottom: 1px solid #eee;
+                                    padding: 5px 0;
+                                }
+                                .amount-section {
+                                    margin: 30px 0;
+                                    text-align: right;
+                                }
+                                .total-amount {
+                                    font-size: 1.2em;
+                                    font-weight: bold;
+                                    color: #0d6efd;
+                                }
+                                .footer {
+                                    margin-top: 50px;
+                                    text-align: center;
+                                    font-size: 0.9em;
+                                    color: #666;
+                                }
+                                @media print {
+                                    .no-print {
+                                        display: none;
+                                    }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="invoice-header">
+                                <h1>EVFind</h1>
+                                <p>EV Charging Station Network</p>
+                                <p>Invoice #: INV-${bookingId.padStart(6, '0')}</p>
+                                <p>Date: ${new Date().toLocaleDateString()}</p>
+                            </div>
+                            
+                            <div class="invoice-details">
+                                <div class="detail-row" style="background: #f8f9fa; padding: 10px; border-radius: 5px;">
+                                    <span>Customer Name:</span>
+                                    <span>${userName}</span>
+                                </div>
+                                
+                                <div class="detail-row">
+                                    <span>Station:</span>
+                                    <span>${stationName}</span>
+                                </div>
+                                
+                                <div class="detail-row">
+                                    <span>Station Address:</span>
+                                    <span>${address}</span>
+                                </div>
+                                
+                                <div class="detail-row">
+                                    <span>Station Coordinates:</span>
+                                    <span>Lat: ${latitude}, Long: ${longitude}</span>
+                                </div>
+                                
+                                <div class="detail-row">
+                                    <span>Booking Date:</span>
+                                    <span>${bookingDate}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Start Time:</span>
+                                    <span>${startTime}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Duration:</span>
+                                    <span>${duration} hour(s)</span>
+                                </div>
+                                <div class="detail-row" style="color: #dc3545; font-weight: bold;">
+                                    <span>Expiration Time:</span>
+                                    <span>${calculateExpirationTime(startTime, duration)}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="amount-section">
+                                <div class="total-amount">
+                                    Total Amount: ₹${parseFloat(amount).toFixed(2)}
+                                </div>
+                            </div>
+                            
+                            <div class="footer">
+                                <p style="color: #dc3545; font-weight: bold;">Important: Your booking will expire at the time mentioned above (includes 15 minutes grace period)</p>
+                                <p>Thank you for choosing EVFind!</p>
+                                <p>For support, contact: support@evcharg.com</p>
+                                <p>This is a computer-generated document.</p>
+                            </div>
+                            
+                            <div class="no-print" style="text-align: center; margin-top: 20px;">
+                                <button onclick="window.print()" style="padding: 10px 20px; background: #0d6efd; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                    Print Invoice
+                                </button>
+                            </div>
+                        </body>
+                        </html>
+                    `;
+                    
+                    invoiceWindow.document.write(invoiceHTML);
+                    invoiceWindow.document.close();
+                }
+                </script>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i class="bi bi-calendar-x"></i>
+                <h3>No Bookings Found</h3>
+                <p class="text-muted">You haven't made any bookings yet.</p>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary mt-3">
+                    <i class="bi bi-plus-circle me-2"></i>Make a Booking
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+    function cancelBooking(bookingId) {
+        if (confirm('Are you sure you want to cancel this booking?')) {
+            fetch(`/user/cancel-booking/${bookingId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert('Booking cancelled successfully!');
+                    location.reload();
+                } else {
+                    alert('Error cancelling booking: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error cancelling booking: ' + error.message);
+            });
+        }
+    }
+
+    function finishCharging(bookingId) {
+        if (confirm('Confirm that charging is complete?')) {
+            fetch(`/user/finish-charging/${bookingId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert('Charging completed successfully!');
+                    location.reload();
+                } else {
+                    alert('Error completing charging: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error completing charging: ' + error.message);
+            });
+        }
+    }
+
+    function calculateExpirationTime(startTime, duration) {
+        const [hours, minutes] = startTime.split(':').map(Number);
+        const durationHours = parseInt(duration);
+        
+        let expirationDate = new Date();
+        expirationDate.setHours(hours);
+        expirationDate.setMinutes(minutes);
+        
+        // Add duration hours and 15 minutes grace period
+        expirationDate.setHours(expirationDate.getHours() + durationHours);
+        expirationDate.setMinutes(expirationDate.getMinutes() + 15);
+        
+        return expirationDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+
+    function downloadInvoice(bookingId) {
+        window.open(`/download_invoice/${bookingId}`, '_blank');
+    }
+    </script>
+</body>
+</html>

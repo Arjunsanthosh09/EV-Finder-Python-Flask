@@ -10,13 +10,14 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         :root {
-            --primary-bg: #FEF6E9;
-            --text-dark: #1A1A1A;
+            --primary-bg: #1a1a1a;
+            --text-dark: #ffffff;
             --sidebar-width: 300px;
         }
 
         body {
-            background-color: #f8f9fa;
+            background-color: #121212;
+            color: #ffffff;
             min-height: 100vh;
         }
 
@@ -27,8 +28,8 @@
 
         .sidebar {
             width: var(--sidebar-width);
-            background: white;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            background: #1a1a1a;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.3);
             padding: 1.5rem;
             overflow-y: auto;
         }
@@ -36,26 +37,29 @@
         .main-content {
             flex: 1;
             padding: 1.5rem;
+            background: #121212;
         }
 
         #map {
             height: calc(100vh - 130px);
             border-radius: 12px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.3);
         }
 
         .station-card {
-            background: white;
+            background: #242424;
             border-radius: 10px;
             padding: 1rem;
             margin-bottom: 1rem;
             transition: all 0.3s ease;
-            border: 1px solid #eee;
+            border: 1px solid #333;
+            color: #ffffff;
         }
 
         .station-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            background: #2a2a2a;
         }
 
         .status-badge {
@@ -75,7 +79,7 @@
         }
 
         .station-list::-webkit-scrollbar-thumb {
-            background: #ccc;
+            background: #444;
             border-radius: 5px;
         }
 
@@ -85,9 +89,15 @@
         }
 
         .search-box input {
+            background: #242424;
+            color: #ffffff;
             padding-left: 2.5rem;
             border-radius: 20px;
-            border: 1px solid #ddd;
+            border: 1px solid #333;
+        }
+
+        .search-box input::placeholder {
+            color: #888;
         }
 
         .search-box i {
@@ -95,21 +105,50 @@
             left: 1rem;
             top: 50%;
             transform: translateY(-50%);
-            color: #666;
+            color: #888;
         }
 
         .navbar {
-            background-color: white !important;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background-color: #1a1a1a !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
 
         .navbar-brand {
-            color: var(--text-dark) !important;
+            color: #ffffff !important;
             font-weight: 500;
+        }
+
+        .nav-link {
+            color: #ffffff !important;
+        }
+
+        .btn-custom {
+            background-color: #444;
+            color: #ffffff;
+            border: none;
+        }
+
+        .btn-custom:hover {
+            background-color: #555;
+            color: #ffffff;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            color: #ffffff;
+        }
+
+        .modal-header {
+            border-bottom: 1px solid #333;
+        }
+
+        .btn-close {
+            filter: invert(1);
         }
 
         .leaflet-popup-content {
             min-width: 250px;
+            color: #000000;
         }
     </style>
 </head>
@@ -117,7 +156,7 @@
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">
-                <i class="bi bi-lightning-charge-fill"></i> EV Finder
+                <i class="bi bi-lightning-charge-fill text-primary"></i> EVFind
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -125,10 +164,21 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="bi bi-person-circle"></i> Profile</a>
+                        <a class="nav-link" href="{{ url_for('booking_details') }}">
+                            <i class="bi bi-calendar-check me-1"></i> My Bookings
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+                        <a class="nav-link" href="{{ url_for('userprofile') }}">
+                            <i class="bi bi-person-circle"></i> {{ session.user_name }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">
+                            <button class="btn btn-custom">
+                                <i class="bi bi-box-arrow-right"></i> Logout
+                            </button>
+                        </a>
                     </li>
                 </ul>
             </div>
@@ -139,7 +189,8 @@
         <div class="sidebar">
             <div class="search-box">
                 <i class="bi bi-search"></i>
-                <input type="text" class="form-control" placeholder="Search stations...">
+                <input type="text" class="form-control" placeholder="Search stations..." 
+                       oninput="filterStations(this.value)">
             </div>
             <h5 class="mb-3">Charging Stations</h5>
             <div id="station-list" class="station-list">
@@ -194,6 +245,7 @@
 
             const marker = L.marker(position);
             
+            // Update the addMarker function to include station ID in the popup button
             const popupContent = `
                 <div class="p-2">
                     <h6>${station.name}</h6>
@@ -206,13 +258,25 @@
                     </p>
                     <p class="mb-1"><strong>Connector:</strong> ${station.connector_type}</p>
                     <p class="mb-1"><strong>Power:</strong> ${station.power_rating}kW</p>
+                    <p class="mb-1"><strong>Charging Speed:</strong> ${station.power_rating >= 50 ? 'Fast Charging' : 'Standard Charging'}</p>
                     <p class="mb-0"><strong>Price:</strong> ₹${station.price_per_hour}/hour</p>
+                    <div class="mt-3 text-center">
+                        <button class="btn btn-primary btn-sm" onclick="bookStation('${station.name}', '${station.address}', ${station.price_per_hour}, ${station.id})" 
+                                ${station.status !== 'Available' ? 'disabled' : ''}>
+                            <i class="bi bi-calendar-check"></i> Book Now
+                        </button>
+                    </div>
                 </div>
             `;
 
             marker.bindPopup(popupContent);
             marker.addTo(map);
             markers.push(marker);
+        }
+
+        // Update the bookStation function to include station ID
+        function bookStation(stationName, address, price, stationId) {
+            window.location.href = `/user_station_booking?station=${encodeURIComponent(stationName)}&address=${encodeURIComponent(address)}&price=${price}&id=${stationId}`;
         }
 
         function showOnMap(lat, lng) {
@@ -274,16 +338,16 @@
 
             stations.forEach(station => {
                 const item = document.createElement('div');
-                item.className = 'list-group-item station-card';
+                item.className = 'station-card';
                 item.innerHTML = `
-                    <h6 class="mb-1">${station.name}</h6>
-                    <p class="mb-1 small">${station.address}</p>
+                    <h6 class="mb-2">${station.name}</h6>
+                    <p class="mb-2 small text-light">${station.address}</p>
                     <div class="d-flex justify-content-between align-items-center">
                         <span class="badge bg-${station.status === 'Available' ? 'success' : 'danger'}">
                             ${station.status}
                         </span>
-                        <button class="btn btn-sm btn-primary" onclick="showOnMap(${station.latitude}, ${station.longitude})">
-                            Show on Map
+                        <button class="btn btn-custom btn-sm" onclick="showOnMap(${station.latitude}, ${station.longitude})">
+                            View on Map
                         </button>
                     </div>
                 `;
@@ -292,6 +356,24 @@
         }
 
         // Initialize map when page loads
+        // Add this after your existing functions
+        function filterStations(searchText) {
+            const stationCards = document.querySelectorAll('.station-card');
+            searchText = searchText.toLowerCase();
+            
+            stationCards.forEach(card => {
+                const stationName = card.querySelector('h6').textContent.toLowerCase();
+                const stationAddress = card.querySelector('p').textContent.toLowerCase();
+                
+                if (stationName.includes(searchText) || stationAddress.includes(searchText)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Modify the search box input element to add the oninput event
         window.addEventListener('load', initMap);
     </script>
 </body>

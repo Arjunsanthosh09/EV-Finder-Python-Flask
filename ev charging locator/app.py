@@ -1,16 +1,18 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
 from database import get_database_connection
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from datetime import datetime  # Add this at the top with other imports
-# import razorpay  # Comment this line
+from datetime import datetime  
+import razorpay  
+import os
+from werkzeug.utils import secure_filename
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
 
-# Comment out Razorpay client initialization
-# razorpay_client = razorpay.Client(auth=("YOUR_KEY_ID", "YOUR_KEY_SECRET"))
+razorpay_client = razorpay.Client(auth=("rzp_test_pMobRZO0cAbjdt", "YOUR_SECRET_KEY"))
 
 def login_required(f):
     @wraps(f)
@@ -40,32 +42,34 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         
+        if email == "admin@gmail.com" and password == "admin":
+            session['user_id'] = 'admin'
+            session['is_admin'] = True
+            return redirect(url_for('admin_dashboard'))
+        
         conn = get_database_connection()
         if conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-            user = cursor.fetchone()
-            
-            if user and check_password_hash(user['password'], password):
-                session['user_id'] = user['id']
-                session['user_name'] = user['full_name']
+            try:
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+                user = cursor.fetchone()
                 
-                if email == 'admin@gmail.com':
-                    session['is_admin'] = True
-                    print("Admin login successful")  # Debug print
-                    cursor.close()
-                    conn.close()
-                    return redirect(url_for('admin_dashboard'))
-                
-                flash('Login successful!', 'success')
+                if user:
+                    print("Found user:", user)
+                    print("Entered password:", password)
+                    
+                    if check_password_hash(user['password'], password):
+                        session['user_id'] = user['id']
+                        session['user_name'] = user['full_name']
+                        return redirect(url_for('dashboard'))
+                    
+                flash('Invalid email or password', 'danger')
+            except Exception as e:
+                print("Database error:", e)
+                flash('An error occurred. Please try again.', 'danger')
+            finally:
                 cursor.close()
                 conn.close()
-                return redirect(url_for('dashboard'))
-            else:
-                flash('Invalid email or password', 'error')
-            
-            cursor.close()
-            conn.close()
     
     return render_template('login.html')
 
@@ -118,12 +122,11 @@ def nearby_stations():
     data = request.json
     lat = data['latitude']
     lng = data['longitude']
-    radius = data.get('radius', 10)  # Default 10km radius
+    radius = data.get('radius', 10)  
     
     conn = get_database_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Using Haversine formula to calculate distance
     cursor.execute("""
         SELECT *, 
         (6371 * acos(cos(radians(%s)) * cos(radians(latitude)) * 
@@ -258,8 +261,8 @@ def update_profile():
 @app.route('/logout')
 def logout():
     session.clear()
-    flash('You have been logged out', 'info')
-    return redirect(url_for('home'))
+    flash('You have been logged out successfully', 'success')
+    return redirect(url_for('index'))  # Make sure this uses 'index'
 
 # Remove these routes as they're no longer needed
 # @app.route('/bookings')
@@ -276,36 +279,71 @@ def profile():
 @app.route('/admin/dashboard')
 @admin_required
 def admin_dashboard():
-    print("Accessing admin dashboard")  # Debug print
     try:
-        # Get statistics using the database connection from your configuration
         conn = get_database_connection()
         cursor = conn.cursor(dictionary=True)
         
+        # Get total stations
         cursor.execute("SELECT COUNT(*) as total FROM charging_stations")
         total_stations = cursor.fetchone()['total']
         
-        cursor.execute("SELECT COUNT(*) as total FROM bookings WHERE status = 'confirmed'")
+        # Get active bookings (pending or confirmed)
+        cursor.execute("""
+            SELECT COUNT(*) as total FROM bookings 
+            WHERE status IN ('pending', 'confirmed')
+        """)
         active_bookings = cursor.fetchone()['total']
         
+        # Get total users
         cursor.execute("SELECT COUNT(*) as total FROM users")
         total_users = cursor.fetchone()['total']
         
-        cursor.execute("SELECT SUM(total_amount) as total FROM bookings WHERE status != 'cancelled'")
-        total_revenue = cursor.fetchone()['total'] or 0
+        # Get total revenue
+        cursor.execute("""
+            SELECT COALESCE(SUM(total_amount), 0) as total 
+            FROM bookings 
+            WHERE status NOT IN ('cancelled')
+        """)
+        total_revenue = cursor.fetchone()['total']
+        
+        # Get stations with detailed info
+        cursor.execute("""
+            SELECT *, 
+                (SELECT COUNT(*) FROM bookings b 
+                 WHERE b.station_id = cs.id 
+                 AND b.status NOT IN ('cancelled')) as total_bookings
+            FROM charging_stations cs
+            ORDER BY created_at DESC
+        """)
+        stations = cursor.fetchall()
+        
+        # Get recent bookings with user and station details
+        cursor.execute("""
+            SELECT b.*, u.full_name, s.name as station_name,
+                   s.connector_type, s.charging_speed
+            FROM bookings b
+            JOIN users u ON b.user_id = u.id
+            JOIN charging_stations s ON b.station_id = s.id
+            ORDER BY b.created_at DESC
+            LIMIT 10
+        """)
+        recent_bookings = cursor.fetchall()
         
         cursor.close()
         conn.close()
         
         return render_template('admin_dashboard.html',
-                            total_stations=total_stations,
-                            active_bookings=active_bookings,
-                            total_users=total_users,
-                            total_revenue=total_revenue)
+                             total_stations=total_stations,
+                             active_bookings=active_bookings,
+                             total_users=total_users,
+                             total_revenue=total_revenue,
+                             stations=stations,
+                             recent_bookings=recent_bookings)
+                             
     except Exception as e:
-        print(f"Error in admin dashboard: {e}")
-        flash('Error loading admin dashboard', 'error')
-        return redirect(url_for('login'))
+        print(f"Error loading dashboard: {e}")
+        flash('Error loading dashboard data', 'error')
+        return redirect(url_for('admin_login'))
 
 # Add these imports if not already present
 from flask import jsonify
@@ -486,6 +524,252 @@ def admin_users():
         print(f"Error loading users: {e}")
         flash('Error loading users', 'error')
         return redirect(url_for('admin_dashboard'))
+
+@app.route('/user_station_booking')
+def user_station_booking():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('user_station_booking.html')
+
+@app.route('/save_booking', methods=['POST'])
+def save_booking():
+    try:
+        data = request.get_json()
+        conn = get_database_connection()
+        cursor = conn.cursor()
+
+        # First check if this exact payment has already been processed
+        cursor.execute("SELECT id FROM bookings WHERE razorpayid = %s", (data['razorpayid'],))
+        existing_payment = cursor.fetchone()
+        
+        if existing_payment:
+            return jsonify({
+                'success': True,
+                'message': 'Booking already confirmed'
+            })
+
+        # Parse booking times
+        booking_date = data['booking_date']
+        booking_start_time = data['start_time']
+        duration_hours = int(data['duration'])
+
+        # Check for overlapping bookings
+        cursor.execute("""
+            SELECT * FROM bookings 
+            WHERE station_id = %s 
+            AND booking_date = %s 
+            AND status NOT IN ('cancelled', 'Finished')
+            AND (
+                (start_time < ADDTIME(%s, SEC_TO_TIME(%s * 3600)) 
+                AND ADDTIME(start_time, SEC_TO_TIME(duration * 3600)) > %s)
+            )
+        """, (
+            data['station_id'],
+            booking_date,
+            booking_start_time,
+            duration_hours,
+            booking_start_time
+        ))
+        
+        conflicting_bookings = cursor.fetchall()
+        
+        if conflicting_bookings:
+            return jsonify({
+                'success': False, 
+                'message': 'This time slot overlaps with an existing booking. Please choose a different time.'
+            }), 409
+
+        # If no conflicts, proceed with saving the new booking
+        cursor.execute("""
+            INSERT INTO bookings (
+                user_id, station_id, booking_date, start_time, 
+                duration, total_amount, status, razorpayid
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            session['user_id'],
+            data['station_id'],
+            booking_date,
+            booking_start_time,
+            duration_hours,
+            data['total_amount'],
+            data['status'],
+            data['razorpayid']
+        ))
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Booking saved successfully'})
+        
+    except Exception as e:
+        print("Error saving booking:", str(e))
+        return jsonify({'success': False, 'message': 'Error saving booking: ' + str(e)}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
+
+@app.route('/user/cancel-booking/<int:booking_id>', methods=['POST'])
+@login_required
+def user_cancel_booking(booking_id):
+    try:
+        conn = get_database_connection()
+        cursor = conn.cursor()
+        
+        # Update booking status to cancelled
+        cursor.execute("""
+            UPDATE bookings 
+            SET status = 'cancelled' 
+            WHERE id = %s AND user_id = %s
+        """, (booking_id, session['user_id']))
+        
+        if cursor.rowcount == 0:
+            return jsonify({'success': False, 'error': 'Booking not found or unauthorized'}), 404
+            
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Booking cancelled successfully'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
+
+@app.route('/userprofile')
+@login_required
+def userprofile():
+    conn = get_database_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Get user details
+        cursor.execute("SELECT * FROM users WHERE id = %s", [session['user_id']])
+        user = cursor.fetchone()
+        
+        # Get recent bookings
+        cursor.execute("""
+            SELECT b.*, s.name as station_name 
+            FROM bookings b 
+            JOIN charging_stations s ON b.station_id = s.id 
+            WHERE b.user_id = %s 
+            ORDER BY b.created_at DESC 
+            LIMIT 5
+        """, [session['user_id']])
+        recent_bookings = cursor.fetchall()
+        
+        # Get statistics
+        cursor.execute("""
+            SELECT COUNT(*) as total_bookings, 
+                   COALESCE(SUM(total_amount), 0) as total_amount 
+            FROM bookings 
+            WHERE user_id = %s
+        """, [session['user_id']])
+        stats = cursor.fetchone()
+        
+        return render_template('userprofile.html', 
+                             user=user, 
+                             recent_bookings=recent_bookings, 
+                             stats=stats)
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return render_template('user_profile.html')
+
+UPLOAD_FOLDER = 'static/profile_photos'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+# Create upload folder if it doesn't exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload_profile_photo', methods=['POST'])
+@login_required
+def upload_profile_photo():
+    try:
+        if 'photo' not in request.files:
+            return jsonify({'success': False, 'error': 'No file uploaded'})
+        
+        file = request.files['photo']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'})
+        
+        if file and allowed_file(file.filename):
+            # Create unique filename
+            filename = secure_filename(f"user_{session['user_id']}_{file.filename}")
+            filepath = os.path.join(app.root_path, UPLOAD_FOLDER, filename)
+            
+            # Save file
+            file.save(filepath)
+            
+            # Update database
+            conn = get_database_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE users SET profile_photo = %s WHERE id = %s", 
+                         [filename, session['user_id']])
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            return jsonify({'success': True})
+        
+        return jsonify({'success': False, 'error': 'Invalid file type'})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/booking_details')
+@login_required
+def booking_details():
+    conn = get_database_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT b.*, s.name as station_name, s.address, s.latitude, s.longitude
+        FROM bookings b 
+        JOIN charging_stations s ON b.station_id = s.id 
+        WHERE b.user_id = %s 
+        ORDER BY b.booking_date DESC, b.start_time DESC
+    """, (session['user_id'],))
+    
+    bookings = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('booking_details.html', bookings=bookings)
+
+
+
+@app.route('/user/finish-charging/<int:booking_id>', methods=['POST'])
+@login_required
+def user_finish_charging(booking_id):
+    try:
+        conn = get_database_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE bookings 
+            SET status = 'Finished' 
+            WHERE id = %s AND user_id = %s
+        """, (booking_id, session['user_id']))
+        
+        if cursor.rowcount == 0:
+            return jsonify({'success': False, 'error': 'Booking not found or unauthorized'}), 404
+            
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Charging completed successfully'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
 
 if __name__ == '__main__':
     app.run(debug=True)

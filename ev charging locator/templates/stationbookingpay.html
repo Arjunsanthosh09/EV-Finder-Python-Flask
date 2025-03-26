@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment - EVCharg</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        /* Copy all styles from user_station_booking.html */
+        body {
+            background: linear-gradient(rgba(18, 18, 18, 0.97), rgba(18, 18, 18, 0.97)),
+                        url('https://images.unsplash.com/photo-1558425521-42ad53860984?auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .payment-container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 2rem;
+            background: rgba(26, 26, 26, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .payment-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .payment-header i {
+            font-size: 3rem;
+            color: #0d6efd;
+            margin-bottom: 1rem;
+        }
+
+        .review-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .review-item label {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 0.25rem;
+        }
+
+        .review-item p {
+            font-size: 1.1rem;
+            color: #ffffff;
+            margin-bottom: 0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #0d6efd, #0099ff);
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(13, 110, 253, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="payment-container animate__animated animate__fadeIn">
+            <div class="payment-header">
+                <i class="bi bi-credit-card"></i>
+                <h3>Complete Payment</h3>
+                <p class="text-white">Review your booking details and proceed with payment</p>
+            </div>
+
+            <div id="bookingDetails">
+                <!-- Will be populated by JavaScript -->
+            </div>
+
+            <button class="btn btn-primary w-100 mt-4" onclick="initiatePayment()">
+                <i class="bi bi-credit-card me-2"></i>Pay Now
+            </button>
+        </div>
+    </div>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+       
+        const urlParams = new URLSearchParams(window.location.search);
+        const station = decodeURIComponent(urlParams.get('station'));
+        const stationId = decodeURIComponent(urlParams.get('station_id')); 
+        const dateTime = decodeURIComponent(urlParams.get('datetime'));
+        const duration = decodeURIComponent(urlParams.get('duration'));
+        const price = decodeURIComponent(urlParams.get('price')); 
+
+        // Display booking details
+        document.getElementById('bookingDetails').innerHTML = `
+            <div class="review-item">
+                <label>Selected Station</label>
+                <p>${station}</p>
+            </div>
+            <div class="review-item">
+                <label>Date & Time</label>
+                <p>${dateTime}</p>
+            </div>
+            <div class="review-item">
+                <label>Duration</label>
+                <p>${duration}</p>
+            </div>
+            <div class="review-item">
+                <label>Total Amount</label>
+                <p class="text-primary fw-bold">₹${price}</p>
+            </div>
+        `;
+
+        // First, add these script tags in the head section
+        <head>
+            <!-- ... existing head content ... -->
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+        </head>
+        
+        // Then update the payment handler section
+        function initiatePayment() {
+            const paymentAmount = parseInt(price);
+            
+            if (isNaN(paymentAmount)) {
+                alert('Invalid amount. Please try again.');
+                return;
+            }
+        
+            const options = {
+                key: 'rzp_test_pMobRZO0cAbjdt',
+                amount: paymentAmount * 100,
+                currency: 'INR',
+                name: 'EVCharg',
+                description: `Charging Station Booking - ${station} for ${duration}`,
+                handler: function(response) {
+                    // Update the payment success handler with proper database fields
+                    fetch('/save_booking', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            user_id: '{{ session.user_id }}',  // Get user_id from session
+                            station_id: stationId,
+                            booking_date: dateTime.split(' at ')[0],
+                            start_time: dateTime.split(' at ')[1],
+                            duration: duration.replace(' hour(s)', ''),
+                            total_amount: paymentAmount,
+                            status: 'confirmed',
+                            razorpayid: response.razorpay_payment_id
+                        })
+                    })
+                    .then(response => response.json())
+                    // Update the payment success handler
+                    .then(data => {
+                        if(data.success) {
+                            // Store the payment success data in localStorage
+                            localStorage.setItem('paymentData', JSON.stringify({
+                                success: true,
+                                paymentId: response.razorpay_payment_id,
+                                message: 'Payment Successful!'
+                            }));
+                            
+                            // Redirect to booking page
+                            window.location.href = '/user_station_booking';
+                        } else {
+                            alert('Error saving booking: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error saving booking. Please contact support.');
+                    });
+                },
+                prefill: {
+                    name: '{{ session.user_name }}',
+                    email: '{{ session.user_email }}'
+                },
+                theme: {
+                    color: '#0d6efd'
+                }
+            };
+            
+            const rzp = new Razorpay(options);
+            rzp.open();
+        }
+
+        // Add this in the head section
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+        
+        // Replace the generateInvoice function
+        function generateInvoice(paymentId) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Add EVCharg logo/header
+            doc.setFontSize(22);
+            doc.setTextColor(13, 110, 253); // #0d6efd
+            doc.text('EVCharg', 105, 20, { align: 'center' });
+            
+            // Add invoice details
+            doc.setFontSize(16);
+            doc.text('Booking Invoice', 105, 30, { align: 'center' });
+            
+            doc.setFontSize(10);
+            doc.setTextColor(60, 60, 60);
+            doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 40);
+            doc.text(`Invoice #: INV-${Date.now()}`, 20, 45);
+            
+            // Customer Details
+            doc.setFontSize(12);
+            doc.setTextColor(13, 110, 253);
+            doc.text('Customer Details', 20, 60);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(60, 60, 60);
+            doc.text(`Name: {{ session.user_name }}`, 20, 70);
+            doc.text(`Email: {{ session.user_email }}`, 20, 75);
+            
+            // Booking Details
+            doc.setFontSize(12);
+            doc.setTextColor(13, 110, 253);
+            doc.text('Booking Details', 20, 90);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(60, 60, 60);
+            doc.text(`Station: ${station}`, 20, 100);
+            doc.text(`Date & Time: ${dateTime}`, 20, 105);
+            doc.text(`Duration: ${duration}`, 20, 110);
+            
+            // Payment Details
+            doc.setFontSize(12);
+            doc.setTextColor(13, 110, 253);
+            doc.text('Payment Details', 20, 125);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(60, 60, 60);
+            doc.text(`Amount: ₹${price}`, 20, 135);
+            doc.text(`Payment Status: Paid`, 20, 140);
+            doc.text(`Payment ID: ${paymentId}`, 20, 145);
+            doc.text(`Payment Method: Razorpay`, 20, 150);
+            
+            // Footer
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text('Thank you for choosing EVCharg!', 105, 270, { align: 'center' });
+            doc.text('For support, contact: support@evcharg.com', 105, 275, { align: 'center' });
+            
+            // Save the PDF
+            doc.save(`EVCharg_Invoice_${Date.now()}.pdf`);
+        }
+
+        // Update the success handler
+        if(data.success) {
+            generateInvoice(response.razorpay_payment_id);
+            alert('Booking confirmed! Your invoice has been downloaded.');
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

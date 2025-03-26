@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile - EVFind</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #121212;
+            color: #f5f5f5;  /* Changed to off-white */
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            color: #f8f9fa;  /* Brighter white for important info */
+        }
+
+        .info-label {
+            color: #adb5bd;  /* Lighter gray for labels */
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .text-muted {
+            color: #868e96 !important;  /* Lighter muted text */
+        }
+
+        .info-card h5 {
+            color: #f8f9fa;  /* Changed from blue to white */
+            margin-bottom: 1.5rem;
+        }
+
+        .navbar-brand, .nav-link {
+            color: #f8f9fa !important;  /* Brighter white for navigation */
+        }
+
+        .profile-header h3 {
+            color: #ffffff;  /* Pure white for name */
+        }
+        .profile-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: #1a1a1a;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .profile-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid #333;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            background: #2a2a2a;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+        }
+
+        .profile-avatar i {
+            font-size: 3rem;
+            color: #0d6efd;
+        }
+
+        .info-card {
+            background: #242424;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-card h5 {
+            color: #0d6efd;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-item {
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #333;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .info-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    <style>
+        .navbar {
+            background: linear-gradient(to right, rgba(13, 17, 23, 0.95), rgba(26, 26, 26, 0.95)) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .navbar-brand {
+            color: #ffffff !important;
+            font-weight: 700;
+            font-size: 1.5rem;
+            letter-spacing: 0.5px;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            transition: all 0.4s ease;
+        }
+
+        .navbar-brand i {
+            color: #3b82f6;
+            margin-right: 0.7rem;
+            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
+            transition: all 0.4s ease;
+        }
+
+        .navbar-brand:hover {
+            transform: translateY(-2px);
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+
+        .navbar-brand:hover i {
+            transform: scale(1.2) rotate(-5deg);
+            color: #60a5fa;
+        }
+
+        .nav-link {
+            color: #e5e7eb !important;
+            font-weight: 500;
+            padding: 0.6rem 1.2rem;
+            margin: 0 0.3rem;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(59, 130, 246, 0.1), rgba(96, 165, 250, 0.1));
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .nav-link:hover:before {
+            transform: translateX(0);
+        }
+
+        .nav-link:hover {
+            color: #ffffff !important;
+            transform: translateY(-1px);
+        }
+
+        .btn-custom {
+            background: linear-gradient(45deg, #3b82f6, #60a5fa);
+            color: #ffffff;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+            background: linear-gradient(45deg, #2563eb, #3b82f6);
+        }
+
+        .navbar-toggler {
+            border: none;
+            padding: 0.5rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+            outline: 2px solid rgba(59, 130, 246, 0.5);
+        }
+
+        @media (max-width: 991px) {
+            .nav-link {
+                margin: 0.5rem 0;
+            }
+            
+            .navbar-collapse {
+                background: rgba(13, 17, 23, 0.98);
+                margin: 1rem -1rem -0.5rem;
+                padding: 1rem;
+                border-radius: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+        }
+    </style>
+
+    <!-- Update the navbar structure -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-lightning-charge-fill"></i>EVCharg
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <i class="bi bi-map me-2"></i>Map
+                        </a>
+                    </li>
+                    <li class="nav-item ms-2">
+                        <a class="nav-link" href="{{ url_for('logout') }}">
+                            <button class="btn btn-custom">
+                                <i class="bi bi-box-arrow-right me-2"></i>Logout
+                            </button>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Add padding to body to account for fixed navbar -->
+    <style>
+        body {
+            padding-top: 80px;
+        }
+    </style>
+
+    <div class="container">
+        <div class="profile-container animate__animated animate__fadeIn">
+            <!-- Add this in the profile-avatar div -->
+            <div class="profile-header">
+                <div class="profile-avatar" onclick="document.getElementById('photoUpload').click()">
+                    {% if user.profile_photo %}
+                        <img src="{{ url_for('static', filename='profile_photos/' + user.profile_photo) }}" alt="Profile Photo" class="avatar-img">
+                    {% else %}
+                        <i class="bi bi-person"></i>
+                    {% endif %}
+                    <div class="avatar-overlay">
+                        <i class="bi bi-camera"></i>
+                    </div>
+                </div>
+                <input type="file" id="photoUpload" accept="image/*" style="display: none" onchange="uploadPhoto(this)">
+                <h3>{{ session.user_name }}</h3>
+                <p class="text-muted">Member since {{ user.created_at.strftime('%B %Y') }}</p>
+            </div>
+
+            <div class="info-card">
+                <h5><i class="bi bi-person-vcard"></i> Personal Information</h5>
+                <div class="info-item">
+                    <div class="info-label">Full Name</div>
+                    <div class="info-value">{{ user.full_name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Email Address</div>
+                    <div class="info-value">{{ user.email }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Phone Number</div>
+                    <div class="info-value">{{ user.phone }}</div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h5><i class="bi bi-clock-history"></i> Recent Bookings</h5>
+                {% for booking in recent_bookings %}
+                <div class="info-item">
+                    <div class="info-label">{{ booking.station_name }}</div>
+                    <div class="info-value">
+                        {{ booking.booking_date.strftime('%d %B %Y') }} at {{ booking.start_time }}
+                        <span class="badge {% if booking.status == 'confirmed' %}bg-success{% else %}bg-secondary{% endif %} float-end">
+                            {{ booking.status }}
+                        </span>
+                    </div>
+                    <div class="text-muted small">Duration: {{ booking.duration }} hour(s)</div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="info-card">
+                <h5><i class="bi bi-graph-up"></i> Statistics</h5>
+                <div class="info-item">
+                    <div class="info-label">Total Bookings</div>
+                    <div class="info-value">{{ stats.total_bookings }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Amount Spent</div>
+                    <div class="info-value">₹{{ "%.2f"|format(stats.total_amount) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+<!-- Add these styles in the head section -->
+<style>
+    .profile-avatar {
+        position: relative;
+        cursor: pointer;
+        overflow: hidden;
+    }
+
+    .avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .avatar-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .avatar-overlay i {
+        color: white;
+        font-size: 2rem;
+    }
+
+    .profile-avatar:hover .avatar-overlay {
+        opacity: 1;
+    }
+</style>
+
+<!-- Add this script before the closing body tag -->
+<script>
+    function uploadPhoto(input) {
+        if (input.files && input.files[0]) {
+            const formData = new FormData();
+            formData.append('photo', input.files[0]);
+
+            fetch('{{ url_for("upload_profile_photo") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error uploading photo: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error uploading photo');
+            });
+        }
+    }
+</script>
+
+<style>
+    .navbar {
+        background: linear-gradient(to right, rgba(13, 17, 23, 0.95), rgba(26, 26, 26, 0.95)) !important;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        padding: 0.8rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .navbar-brand {
+        color: #ffffff !important;
+        font-weight: 700;
+        font-size: 1.5rem;
+        letter-spacing: 0.5px;
+        padding: 0.5rem 1rem;
+        border-radius: 12px;
+        transition: all 0.4s ease;
+    }
+
+    .navbar-brand i {
+        color: #3b82f6;
+        margin-right: 0.7rem;
+        filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
+        transition: all 0.4s ease;
+    }
+
+    .navbar-brand:hover {
+        transform: translateY(-2px);
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    }
+
+    .navbar-brand:hover i {
+        transform: scale(1.2) rotate(-5deg);
+        color: #60a5fa;
+    }
+
+    .nav-link {
+        color: #e5e7eb !important;
+        font-weight: 500;
+        padding: 0.6rem 1.2rem;
+        margin: 0 0.3rem;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .nav-link:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(45deg, rgba(59, 130, 246, 0.1), rgba(96, 165, 250, 0.1));
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+
+    .nav-link:hover:before {
+        transform: translateX(0);
+    }
+
+    .nav-link:hover {
+        color: #ffffff !important;
+        transform: translateY(-1px);
+    }
+
+    .btn-custom {
+        background: linear-gradient(45deg, #3b82f6, #60a5fa);
+        color: #ffffff;
+        border: none;
+        padding: 0.7rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        background: linear-gradient(45deg, #2563eb, #3b82f6);
+    }
+
+    .navbar-toggler {
+        border: none;
+        padding: 0.5rem;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .navbar-toggler:focus {
+        box-shadow: none;
+        outline: 2px solid rgba(59, 130, 246, 0.5);
+    }
+
+    @media (max-width: 991px) {
+        .nav-link {
+            margin: 0.5rem 0;
+        }
+        
+        .navbar-collapse {
+            background: rgba(13, 17, 23, 0.98);
+            margin: 1rem -1rem -0.5rem;
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    }
+</style>

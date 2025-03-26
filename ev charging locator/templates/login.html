@@ -119,7 +119,7 @@
     </style>
 </head>
 <body>
-    <a href="/" class="back-to-home">
+    <a href="{{ url_for('index') }}" class="back-to-home">
         <i class="bi bi-arrow-left"></i> Back to Home
     </a>
     
@@ -128,12 +128,22 @@
             <div class="col-md-5">
                 <div class="login-container">
                     <h2 class="login-title">Welcome Back</h2>
+                    <!-- Add flash messages -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
                     <form action="{{ url_for('login') }}" method="POST">
                         <div class="mb-4">
-                            <input type="email" class="form-control" placeholder="Email Address" required>
+                            <input type="email" name="email" class="form-control" placeholder="Email Address" required>
                         </div>
                         <div class="mb-4">
-                            <input type="password" class="form-control" placeholder="Password" required>
+                            <input type="password" name="password" class="form-control" placeholder="Password" required>
                         </div>
                         <button type="submit" class="btn btn-primary">Login</button>
                     </form>

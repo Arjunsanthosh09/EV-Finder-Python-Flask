@@ -1,23 +1,23 @@
 <div class="col-md-2 admin-sidebar">
-    <div class="d-flex align-items-center mb-4">
-        <i class="bi bi-lightning-charge-fill fs-4 me-2"></i>
-        <h4 class="mb-0">Admin Panel</h4>
-    </div>
-    <nav class="nav flex-column">
-        <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
-            <i class="bi bi-speedometer2 me-2"></i> Dashboard
+    <h4 class="mb-4">
+        <i class="bi bi-lightning-charge-fill"></i>
+        Admin Panel
+    </h4>
+    <div class="nav flex-column">
+        <a class="nav-link active" href="{{ url_for('admin_dashboard') }}">
+            <i class="bi bi-speedometer2 me-2"></i>Dashboard
         </a>
         <a class="nav-link" href="{{ url_for('admin_stations') }}">
-            <i class="bi bi-geo-alt me-2"></i> Stations
+            <i class="bi bi-ev-station me-2"></i>Stations
         </a>
         <a class="nav-link" href="{{ url_for('admin_bookings') }}">
-            <i class="bi bi-calendar-check me-2"></i> Bookings
+            <i class="bi bi-calendar-check me-2"></i>Bookings
         </a>
         <a class="nav-link" href="{{ url_for('admin_users') }}">
-            <i class="bi bi-people me-2"></i> Users
+            <i class="bi bi-people me-2"></i>Users
         </a>
-        <a class="nav-link" href="{{ url_for('logout') }}">
-            <i class="bi bi-box-arrow-right me-2"></i> Logout
+        <a class="nav-link mt-auto" href="{{ url_for('logout') }}">
+            <i class="bi bi-box-arrow-right me-2"></i>Logout
         </a>
-    </nav>
+    </div>
 </div>
