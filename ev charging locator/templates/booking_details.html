@@ -190,7 +190,7 @@
                     <button class="btn btn-cancel" onclick="cancelBooking('{{ booking.id }}')">
                         <i class="bi bi-x-circle me-2"></i>Cancel Booking
                     </button>
-                    <button class="btn btn-primary" onclick="printInvoice(...)">
+                    <button class="btn btn-primary" onclick="printInvoice('{{ booking.id }}', '{{ booking.station_name }}', '{{ booking.booking_date.strftime('%d %B %Y') }}', '{{ booking.start_time }}', '{{ booking.duration }}', '{{ booking.total_amount }}', '{{ session.user_name }}', '{{ booking.address }}', '{{ booking.latitude }}', '{{ booking.longitude }}')">
                         <i class="bi bi-printer me-2"></i>Print Invoice
                     </button>
                     {% if booking.status == 'confirmed' %}

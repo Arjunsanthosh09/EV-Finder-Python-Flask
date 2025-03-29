@@ -43,7 +43,27 @@ def login():
         password = request.form.get('password')
         
         if email == "admin@gmail.com" and password == "admin":
-            session['user_id'] = 'admin'
+            conn = get_database_connection()
+            cursor = conn.cursor(dictionary=True)
+            
+            # Get or create admin user
+            cursor.execute("SELECT * FROM users WHERE email = 'admin@gmail.com'")
+            admin = cursor.fetchone()
+            
+            if not admin:
+                # Create admin user if doesn't exist
+                cursor.execute("""
+                    INSERT INTO users (full_name, email, password)
+                    VALUES ('Administrator', 'admin@gmail.com', %s)
+                """, (generate_password_hash('admin'),))
+                conn.commit()
+                cursor.execute("SELECT * FROM users WHERE email = 'admin@gmail.com'")
+                admin = cursor.fetchone()
+            
+            cursor.close()
+            conn.close()
+            
+            session['user_id'] = admin['id']
             session['is_admin'] = True
             return redirect(url_for('admin_dashboard'))
         
@@ -443,18 +463,42 @@ def add_station():
         cursor = conn.cursor()
         
         cursor.execute("""
-            INSERT INTO charging_stations (name, address, latitude, longitude, price_per_hour)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (data['name'], data['address'], data['latitude'], data['longitude'], data['price_per_hour']))
+            INSERT INTO charging_stations (
+                name, address, district, latitude, longitude,
+                connector_type, charging_speed, power_rating,
+                status, price_per_hour
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            data['name'],
+            data['address'],
+            data['district'],
+            data['latitude'],
+            data['longitude'],
+            data['connector_type'],
+            data['charging_speed'],
+            data['power_rating'],
+            data['status'],
+            data['price_per_hour']
+        ))
         
         conn.commit()
+        station_id = cursor.lastrowid
+        
         cursor.close()
         conn.close()
         
-        return jsonify({'success': True, 'message': 'Station added successfully'})
+        return jsonify({
+            'success': True,
+            'message': 'Station added successfully',
+            'station_id': station_id
+        })
+        
     except Exception as e:
         print(f"Error adding station: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/admin/stations')
 @admin_required
@@ -463,7 +507,13 @@ def admin_stations():
         conn = get_database_connection()
         cursor = conn.cursor(dictionary=True)
         
-        cursor.execute("SELECT * FROM charging_stations ORDER BY id DESC")
+        cursor.execute("""
+            SELECT id, name, address, district, latitude, longitude,
+                   connector_type, charging_speed, power_rating,
+                   status, price_per_hour, created_at
+            FROM charging_stations 
+            ORDER BY created_at DESC
+        """)
         stations = cursor.fetchall()
         
         cursor.close()
@@ -729,14 +779,13 @@ def booking_details():
     
     cursor.execute("""
         SELECT b.*, s.name as station_name, s.address, s.latitude, s.longitude
-        FROM bookings b 
-        JOIN charging_stations s ON b.station_id = s.id 
-        WHERE b.user_id = %s 
-        ORDER BY b.booking_date DESC, b.start_time DESC
+        FROM bookings b
+        JOIN charging_stations s ON b.station_id = s.id
+        WHERE b.user_id = %s
+        ORDER BY b.created_at DESC
     """, (session['user_id'],))
     
     bookings = cursor.fetchall()
-    
     cursor.close()
     conn.close()
     
@@ -770,6 +819,189 @@ def user_finish_charging(booking_id):
             cursor.close()
         if 'conn' in locals():
             conn.close()
+
+@app.route('/api/admin/stations/<int:station_id>', methods=['GET'])
+@admin_required
+def get_admin_station(station_id):
+    try:
+        conn = get_database_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT id, name, address, district, latitude, longitude,
+                   connector_type, charging_speed, power_rating,
+                   status, price_per_hour
+            FROM charging_stations 
+            WHERE id = %s
+        """, (station_id,))
+        
+        station = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if station:
+            return jsonify({'success': True, 'station': station})
+        return jsonify({'success': False, 'error': 'Station not found'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/stations/<int:station_id>', methods=['PUT'])
+@admin_required
+def update_station(station_id):
+    try:
+        data = request.json
+        conn = get_database_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE charging_stations 
+            SET name = %s, address = %s, district = %s,
+                latitude = %s, longitude = %s,
+                connector_type = %s, charging_speed = %s,
+                power_rating = %s, status = %s,
+                price_per_hour = %s
+            WHERE id = %s
+        """, (
+            data['name'],
+            data['address'],
+            data['district'],
+            data['latitude'],
+            data['longitude'],
+            data['connector_type'],
+            data['charging_speed'],
+            data['power_rating'],
+            data['status'],
+            data['price_per_hour'],
+            station_id
+        ))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Station updated successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error updating station: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/admin/stations/<int:station_id>', methods=['DELETE'])
+@admin_required
+def delete_station(station_id):
+    try:
+        conn = get_database_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # First check if there are any bookings for this station
+        cursor.execute("""
+            SELECT COUNT(*) as count 
+            FROM bookings 
+            WHERE station_id = %s
+        """, (station_id,))
+        
+        booking_count = cursor.fetchone()['count']
+        
+        if booking_count > 0:
+            # Delete associated bookings first
+            cursor.execute("DELETE FROM bookings WHERE station_id = %s", (station_id,))
+        
+        # Now delete the station
+        cursor.execute("DELETE FROM charging_stations WHERE id = %s", (station_id,))
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Station and associated bookings deleted successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error deleting station: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# Around line 900-930, keep only ONE admin_profile route:
+@app.route('/admin/profile')
+@admin_required
+def admin_profile():
+    try:
+        conn = get_database_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Modified query to fetch admin user
+        cursor.execute("""
+            SELECT id, full_name, email, created_at, profile_photo 
+            FROM users 
+            WHERE email = 'admin@gmail.com'
+        """)
+        
+        admin = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not admin:
+            flash('Admin profile not found', 'error')
+            return redirect(url_for('admin_dashboard'))
+            
+        return render_template('admin_profile.html', admin=admin)
+        
+    except Exception as e:
+        print(f"Error loading admin profile: {e}")  # Add debug print
+        flash('Error loading profile: ' + str(e), 'error')
+        return redirect(url_for('admin_dashboard'))
+
+# Fix the update_admin_profile function around line 950:
+@app.route('/admin/profile/update', methods=['POST'])
+@admin_required
+def update_admin_profile():
+    try:
+        conn = get_database_connection()
+        cursor = conn.cursor()
+        
+        # Handle file upload
+        if 'profile_photo' in request.files:
+            file = request.files['profile_photo']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(f"admin_{session['user_id']}_{file.filename}")
+                file.save(os.path.join(app.root_path, UPLOAD_FOLDER, filename))
+                
+                cursor.execute("""
+                    UPDATE users 
+                    SET profile_photo = %s 
+                    WHERE id = %s
+                """, (filename, session['user_id']))
+        
+        # Update basic info without phone_number
+        cursor.execute("""
+            UPDATE users 
+            SET full_name = %s, email = %s
+            WHERE id = %s
+        """, (
+            request.form['full_name'],
+            request.form['email'],
+            session['user_id']
+        ))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        flash('Profile updated successfully', 'success')
+        return redirect(url_for('admin_profile'))
+        
+    except Exception as e:
+        flash('Error updating profile: ' + str(e), 'error')
+        return redirect(url_for('admin_profile'))
 
 if __name__ == '__main__':
     app.run(debug=True)

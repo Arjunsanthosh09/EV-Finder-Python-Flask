@@ -150,11 +150,10 @@
 
                 <!-- Stations Management -->
                 <div class="table-container mb-4">
+                    <!-- Remove this section -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h5>Charging Stations</h5>
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStationModal">
-                            <i class="bi bi-plus-circle me-2"></i>Add Station
-                        </button>
+                        <!-- Remove the Add Station button -->
                     </div>
                     <div class="table-responsive">
                         <!-- Update the stations table -->
@@ -170,7 +169,7 @@
                                     <th>Price/Hour</th>
                                     <th>Status</th>
                                     <th>Bookings</th>
-                                    <th>Actions</th>
+                                    <!-- Remove the Actions column header -->
                                 </tr>
                             </thead>
                             <tbody id="stations-table">
@@ -193,35 +192,7 @@
                                         </span>
                                     </td>
                                     <td>{{ station.total_bookings }}</td>
-                                    <style>
-                                        .action-buttons {
-                                            display: flex;
-                                            gap: 4px;  /* Reduced gap between buttons */
-                                            align-items: center;
-                                            justify-content: flex-start;
-                                        }
-
-                                        .btn-sm {
-                                            width: 32px;  /* Fixed width for square buttons */
-                                            height: 32px;
-                                            padding: 0;
-                                            display: inline-flex;
-                                            align-items: center;
-                                            justify-content: center;
-                                        }
-                                    </style>
-                                    
-                                    <!-- In the table row, update the actions column -->
-                                    <td>
-                                        <div class="action-buttons">
-                                            <button class="btn btn-sm btn-primary" onclick="editStation({{ station.id }})">
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" onclick="deleteStation({{ station.id }})">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
+                                    <!-- Remove the Actions column -->
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -229,6 +200,7 @@
                         
                         <!-- Update the bookings table -->
                         <table class="table table-hover">
+                            <!-- Update the bookings table header -->
                             <thead>
                                 <tr>
                                     <th>User</th>
@@ -240,7 +212,7 @@
                                     <th>Speed</th>
                                     <th>Amount</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
+                                    <!-- Removed Actions column -->
                                 </tr>
                             </thead>
                             <tbody id="bookings-table">
@@ -262,18 +234,7 @@
                                             {{ booking.status }}
                                         </span>
                                     </td>
-                                    <td>
-                                        {% if booking.status == 'pending' %}
-                                        <button class="btn btn-sm btn-success" onclick="updateBookingStatus({{ booking.id }}, 'confirmed')">
-                                            <i class="bi bi-check-circle"></i>
-                                        </button>
-                                        {% endif %}
-                                        {% if booking.status in ['pending', 'confirmed'] %}
-                                        <button class="btn btn-sm btn-danger" onclick="updateBookingStatus({{ booking.id }}, 'cancelled')">
-                                            <i class="bi bi-x-circle"></i>
-                                        </button>
-                                        {% endif %}
-                                    </td>
+                                    <!-- Removed Actions column -->
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -385,34 +346,38 @@
         // Add new station
         function addStation() {
             const form = document.getElementById('add-station-form');
-            const formData = new FormData(form);
-            
+            const formData = {
+                name: form.name.value,
+                address: form.address.value,
+                district: form.district.value,
+                latitude: parseFloat(form.latitude.value),
+                longitude: parseFloat(form.longitude.value),
+                connector_type: form.connector_type.value,
+                charging_speed: form.charging_speed.value,
+                power_rating: parseInt(form.power_rating.value),
+                price_per_hour: parseFloat(form.price_per_hour.value),
+                status: form.status.value
+            };
+
             fetch('/api/admin/stations', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    name: formData.get('name'),
-                    address: formData.get('address'),
-                    district: formData.get('district'),
-                    latitude: parseFloat(formData.get('latitude')),
-                    longitude: parseFloat(formData.get('longitude')),
-                    connector_type: formData.get('connector_type'),
-                    charging_speed: formData.get('charging_speed'),
-                    power_rating: parseInt(formData.get('power_rating')),
-                    price_per_hour: parseFloat(formData.get('price_per_hour'))
-                })
+                body: JSON.stringify(formData)
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    bootstrap.Modal.getInstance(document.getElementById('addStationModal')).hide();
-                    loadStations();
-                    form.reset();
+                    alert('Station added successfully!');
+                    location.reload();  // Reload the page to show the new station
                 } else {
-                    alert('Error adding station: ' + data.error);
+                    alert('Error adding station: ' + (data.error || 'Unknown error'));
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error adding station: ' + error.message);
             });
         }
 
@@ -433,14 +398,6 @@
                                 <span class="badge bg-${getStatusColor(booking.status)}">
                                     ${booking.status}
                                 </span>
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-success" onclick="updateBookingStatus(${booking.id}, 'confirmed')">
-                                    <i class="bi bi-check-circle"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger" onclick="updateBookingStatus(${booking.id}, 'cancelled')">
-                                    <i class="bi bi-x-circle"></i>
-                                </button>
                             </td>
                         </tr>
                     `).join('');

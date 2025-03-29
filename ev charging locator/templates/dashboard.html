@@ -7,7 +7,11 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
     <style>
         :root {
             --primary-bg: #1a1a1a;
@@ -42,8 +46,10 @@
 
         #map {
             height: calc(100vh - 130px);
+            width: 100%;
             border-radius: 12px;
             box-shadow: 0 2px 15px rgba(0,0,0,0.3);
+            z-index: 1;
         }
 
         .station-card {
@@ -150,6 +156,73 @@
             min-width: 250px;
             color: #000000;
         }
+
+        .directions-control {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: #ffffff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 1000;
+            width: 300px;
+            color: #000000;
+        }
+
+        /* Add styles for routing instructions */
+        .leaflet-routing-container {
+            color: #000000 !important;
+            background-color: #ffffff !important;
+        }
+
+        .leaflet-routing-alt {
+            color: #000000 !important;
+        }
+
+        .leaflet-routing-alt h2,
+        .leaflet-routing-alt h3,
+        .leaflet-routing-alt-minimized {
+            color: #000000 !important;
+        }
+
+        .leaflet-routing-icon {
+            filter: brightness(0) !important;
+        }
+
+        /* Update alert colors in directions panel */
+        .directions-control .alert-info {
+            background-color: #e3f2fd;
+            color: #0c5460;
+            border-color: #bee5eb;
+        }
+
+        .directions-control .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+
+        .user-location-marker {
+            background: none;
+            border: none;
+        }
+
+        /* Fix map container */
+        .main-content {
+            position: relative;
+            flex: 1;
+            padding: 1.5rem;
+            background: #121212;
+        }
+
+        #map {
+            height: calc(100vh - 130px);
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.3);
+            z-index: 1;
+        }
     </style>
 </head>
 <body>
@@ -200,6 +273,13 @@
         
         <div class="main-content">
             <div id="map"></div>
+            <div id="directions-panel" class="directions-control d-none">
+                <button class="btn btn-sm btn-secondary float-end" onclick="closeDirections()">
+                    <i class="bi bi-x"></i>
+                </button>
+                <h6><i class="bi bi-signpost-2"></i> Directions</h6>
+                <div id="directions-content"></div>
+            </div>
         </div>
     </div>
 
@@ -219,9 +299,12 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
     <script>
         let map;
         let markers = [];
+        let routingControl = null;
+        let userLocationMarker = null;
 
         function initMap() {
             try {
@@ -229,11 +312,150 @@
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '© OpenStreetMap contributors'
                 }).addTo(map);
+                
+                // Enhanced location control
+                L.control.locate({
+                    position: 'topleft',
+                    strings: {
+                        title: "Show my location"
+                    },
+                    locateOptions: {
+                        enableHighAccuracy: true,
+                        maximumAge: 0,
+                        timeout: 5000,
+                        watch: true 
+                    },
+                    showCompass: true,
+                    flyTo: true,
+                    cacheLocation: false,
+                    onLocationError: function(err) {
+                        alert(`Error getting location: ${err.message}`);
+                    }
+                }).addTo(map);
+                
                 loadStations();
             } catch (error) {
                 console.error('Error initializing map:', error);
                 document.getElementById('map').innerHTML = 
                     '<div class="alert alert-warning">Map loading temporarily disabled. Please try again later.</div>';
+            }
+        }
+
+        function getDirections(destLat, destLng, destName) {
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser');
+                return;
+            }
+
+            const directionsPanel = document.getElementById('directions-panel');
+            directionsPanel.classList.remove('d-none');
+            document.getElementById('directions-content').innerHTML = 
+                '<div class="text-center"><div class="spinner-border spinner-border-sm" role="status"></div> Getting your location...</div>';
+
+            // First get accurate initial position
+            navigator.geolocation.getCurrentPosition(
+                function(initialPosition) {
+                    const userLat = initialPosition.coords.latitude;
+                    const userLng = initialPosition.coords.longitude;
+
+                    // Initialize user marker and routing
+                    initializeRouting(userLat, userLng, destLat, destLng, destName);
+
+                    // Then start watching position
+                    const watchId = navigator.geolocation.watchPosition(
+                        function(position) {
+                            updateUserPosition(position.coords.latitude, position.coords.longitude, destLat, destLng);
+                        },
+                        function(error) {
+                            console.error('Error tracking location:', error);
+                            document.getElementById('directions-content').innerHTML = 
+                                `<div class="alert alert-danger">Error tracking your location: ${error.message}</div>`;
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 5000,
+                            maximumAge: 0
+                        }
+                    );
+
+                    window.currentWatchId = watchId;
+                },
+                function(error) {
+                    console.error('Error getting initial location:', error);
+                    document.getElementById('directions-content').innerHTML = 
+                        `<div class="alert alert-danger">Error getting your location: ${error.message}</div>`;
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        function initializeRouting(userLat, userLng, destLat, destLng, destName) {
+            if (userLocationMarker) {
+                userLocationMarker.setLatLng([userLat, userLng]);
+            } else {
+                userLocationMarker = L.marker([userLat, userLng], {
+                    icon: L.divIcon({
+                        html: '<i class="bi bi-person-fill" style="font-size: 24px; color: #007bff;"></i>',
+                        className: 'user-location-marker',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    })
+                }).addTo(map);
+            }
+
+            if (routingControl) {
+                map.removeControl(routingControl);
+            }
+
+            routingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(userLat, userLng),
+                    L.latLng(destLat, destLng)
+                ],
+                routeWhileDragging: false,
+                lineOptions: {
+                    styles: [{color: '#3388ff', opacity: 0.7, weight: 6}]
+                },
+                createMarker: function() { return null; },
+                fitSelectedRoutes: true
+            }).addTo(map);
+
+            routingControl.on('routesfound', function(e) {
+                const routes = e.routes;
+                const summary = routes[0].summary;
+                
+                document.getElementById('directions-content').innerHTML = `
+                    <p class="mb-2"><strong>From:</strong> Your Location</p>
+                    <p class="mb-2"><strong>To:</strong> ${destName}</p>
+                    <p class="mb-2"><strong>Distance:</strong> ${(summary.totalDistance / 1000).toFixed(1)} km</p>
+                    <p class="mb-2"><strong>Estimated Time:</strong> ${Math.round(summary.totalTime / 60)} mins</p>
+                    <div class="alert alert-info mt-2">
+                        <i class="bi bi-info-circle"></i> Real-time tracking enabled
+                    </div>
+                `;
+
+                // Fit the map to show the entire route
+                map.fitBounds(L.latLngBounds([
+                    [userLat, userLng],
+                    [destLat, destLng]
+                ]).pad(0.5));
+            });
+        }
+
+        function updateUserPosition(userLat, userLng, destLat, destLng) {
+            if (userLocationMarker) {
+                userLocationMarker.setLatLng([userLat, userLng]);
+            }
+
+            if (routingControl) {
+                routingControl.setWaypoints([
+                    L.latLng(userLat, userLng),
+                    L.latLng(destLat, destLng)
+                ]);
             }
         }
 
@@ -245,7 +467,7 @@
 
             const marker = L.marker(position);
             
-            // Update the addMarker function to include station ID in the popup button
+            // Update popup to include directions button
             const popupContent = `
                 <div class="p-2">
                     <h6>${station.name}</h6>
@@ -260,7 +482,10 @@
                     <p class="mb-1"><strong>Power:</strong> ${station.power_rating}kW</p>
                     <p class="mb-1"><strong>Charging Speed:</strong> ${station.power_rating >= 50 ? 'Fast Charging' : 'Standard Charging'}</p>
                     <p class="mb-0"><strong>Price:</strong> ₹${station.price_per_hour}/hour</p>
-                    <div class="mt-3 text-center">
+                    <div class="mt-3 d-flex justify-content-between">
+                        <button class="btn btn-info btn-sm" onclick="getDirections(${position[0]}, ${position[1]}, '${station.name}')">
+                            <i class="bi bi-signpost-2"></i> Directions
+                        </button>
                         <button class="btn btn-primary btn-sm" onclick="bookStation('${station.name}', '${station.address}', ${station.price_per_hour}, ${station.id})" 
                                 ${station.status !== 'Available' ? 'disabled' : ''}>
                             <i class="bi bi-calendar-check"></i> Book Now
@@ -272,6 +497,110 @@
             marker.bindPopup(popupContent);
             marker.addTo(map);
             markers.push(marker);
+        }
+
+        // Get user's current location and show directions
+        function getDirections(destLat, destLng, destName) {
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser');
+                return;
+            }
+
+            const directionsPanel = document.getElementById('directions-panel');
+            directionsPanel.classList.remove('d-none');
+            document.getElementById('directions-content').innerHTML = 
+                '<div class="text-center"><div class="spinner-border spinner-border-sm" role="status"></div> Getting your location...</div>';
+
+            // Watch position instead of getting it once
+            const watchId = navigator.geolocation.watchPosition(
+                function(position) {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+                    
+                    // Update user location marker
+                    if (userLocationMarker) {
+                        userLocationMarker.setLatLng([userLat, userLng]);
+                    } else {
+                        userLocationMarker = L.marker([userLat, userLng], {
+                            icon: L.divIcon({
+                                html: '<i class="bi bi-person-fill" style="font-size: 24px; color: #007bff;"></i>',
+                                className: 'user-location-marker',
+                                iconSize: [24, 24],
+                                iconAnchor: [12, 12]
+                            })
+                        }).addTo(map);
+                    }
+                    
+                    // Update routing
+                    if (routingControl) {
+                        routingControl.setWaypoints([
+                            L.latLng(userLat, userLng),
+                            L.latLng(destLat, destLng)
+                        ]);
+                    } else {
+                        routingControl = L.Routing.control({
+                            waypoints: [
+                                L.latLng(userLat, userLng),
+                                L.latLng(destLat, destLng)
+                            ],
+                            routeWhileDragging: false,
+                            lineOptions: {
+                                styles: [{color: '#3388ff', opacity: 0.7, weight: 6}]
+                            },
+                            createMarker: function() { return null; }
+                        }).addTo(map);
+
+                        // Listen for route calculation complete
+                        routingControl.on('routesfound', function(e) {
+                            const routes = e.routes;
+                            const summary = routes[0].summary;
+                            
+                            document.getElementById('directions-content').innerHTML = `
+                                <p class="mb-2"><strong>From:</strong> Your Location</p>
+                                <p class="mb-2"><strong>To:</strong> ${destName}</p>
+                                <p class="mb-2"><strong>Distance:</strong> ${(summary.totalDistance / 1000).toFixed(1)} km</p>
+                                <p class="mb-2"><strong>Estimated Time:</strong> ${Math.round(summary.totalTime / 60)} mins</p>
+                                <div class="alert alert-info mt-2">
+                                    <i class="bi bi-info-circle"></i> Real-time tracking enabled
+                                </div>
+                            `;
+                        });
+                    }
+                },
+                function(error) {
+                    console.error('Error tracking location:', error);
+                    document.getElementById('directions-content').innerHTML = 
+                        `<div class="alert alert-danger">Error tracking your location: ${error.message}</div>`;
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+
+            // Store watch ID to clear it later
+            window.currentWatchId = watchId;
+        }
+
+        function closeDirections() {
+            // Stop watching position
+            if (window.currentWatchId) {
+                navigator.geolocation.clearWatch(window.currentWatchId);
+                window.currentWatchId = null;
+            }
+            
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+            
+            if (userLocationMarker) {
+                userLocationMarker.remove();
+                userLocationMarker = null;
+            }
+            
+            document.getElementById('directions-panel').classList.add('d-none');
         }
 
         // Update the bookStation function to include station ID
